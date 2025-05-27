@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+{% include 'includes/alerts.html' %}
+
+<!-- Main Section Start -->
+<h2>My Name is {{ request.user.username }}</h2>
+<h3>I am a regular {{request.user.get_role}}</h3>
+
+{% endblock %}
