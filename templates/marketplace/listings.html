@@ -48,6 +48,8 @@
                                                     <a href="{% url 'vendor_detail' vendor.vendor_slug %}">{{ vendor.vendor_name }}</a>
                                                 </h5>
                                             </div>
+                                   
+
                                             {% if vendor.user_profile.address %}
                                             <span><small class="text-muted">{{ vendor.user_profile.address }}</small></span>
                                             {% endif %}
