@@ -50,28 +50,65 @@
                                         <div class="responsive-table">
                                             <table class="table table-hover" id="myOrdersTable">
                                                 <thead>
-                                                  <tr>
-                                                    <th scope="col">Order #</th>
-                                                    <th scope="col">Name</th>
-                                                    <th scope="col">Total</th>
-                                                    <th scope="col">Status</th>
-                                                    <th scope="col">Date</th>
-                                                    <th scope="col">Action</th>
-                                                  </tr>
+                                                    <tr>
+                                                        <th scope="col">Order #</th>
+                                                        <th scope="col">Name</th>
+                                                        <th scope="col">Total</th>
+                                                        <th scope="col">Status</th>
+                                                        <th scope="col">Date</th>
+                                                        <th scope="col">Action</th>
+                                                    </tr>
                                                 </thead>
                                                 <tbody>
                                                     {% for order in recent_orders %}
-                                                  <tr>
-                                                    <td>{{ order.order_number }}</td>
-                                                    <td>{{ order.name }}</td>
-                                                    <td>${{ order.total }}</td>
-                                                    <td>{{ order.status }}</td>
-                                                    <td>{{ order.created_at }}</td>
-                                                    <td><a href="" class="btn btn-danger">Details</a></td>
-                                                  </tr>
-                                                  {% endfor %}
+                                                    <tr>
+                                                        <td>{{ order.order_number }}</td>
+                                                        <td>{{ order.name }}</td>
+                                                        <td>${{ order.total }}</td>
+                                                        <td>{{ order.status }}</td>
+                                                        <td>{{ order.created_at|date:"Y-m-d H:i" }}</td>
+                                                        <td>
+                                                            <a href="{% url 'invoice' order.order_number %}" class="btn btn-danger btn-sm">Invoice</a>
+                                                        </td>
+                                                    </tr>
+                                                    {% empty %}
+                                                    <tr>
+                                                        <td colspan="6" class="text-center">No orders found.</td>
+                                                    </tr>
+                                                    {% endfor %}
                                                 </tbody>
-                                              </table>
+                                            </table>
+
+                                            <!-- Pagination Controls -->
+                                            {% if recent_orders.has_other_pages %}
+                                            <nav aria-label="Order pagination">
+                                                <ul class="pagination justify-content-center">
+                                                    {% if recent_orders.has_previous %}
+                                                    <li class="page-item">
+                                                        <a class="page-link" href="?page={{ recent_orders.previous_page_number }}">&laquo;</a>
+                                                    </li>
+                                                    {% endif %}
+
+                                                    {% for num in recent_orders.paginator.page_range %}
+                                                        {% if recent_orders.number == num %}
+                                                            <li class="page-item active">
+                                                                <span class="page-link">{{ num }}</span>
+                                                            </li>
+                                                        {% elif num > recent_orders.number|add:'-3' and num < recent_orders.number|add:'3' %}
+                                                            <li class="page-item">
+                                                                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                                            </li>
+                                                        {% endif %}
+                                                    {% endfor %}
+
+                                                    {% if recent_orders.has_next %}
+                                                    <li class="page-item">
+                                                        <a class="page-link" href="?page={{ recent_orders.next_page_number }}">&raquo;</a>
+                                                    </li>
+                                                    {% endif %}
+                                                </ul>
+                                            </nav>
+                                            {% endif %}
 
                                         </div>												
                                     </div>
@@ -86,6 +123,5 @@
     </div>
 </div>
 <!-- Main Section End -->
-
 
 {% endblock %}

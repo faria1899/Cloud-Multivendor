@@ -11,11 +11,14 @@ from .models import User, UserProfile
 from django.contrib import messages, auth
 from .utils import detectUser, send_verification_email
 from django.contrib.auth.decorators import login_required, user_passes_test
-
+from django.core.paginator import Paginator
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render
+from orders.models import Order
 from django.core.exceptions import PermissionDenied
 from vendor.models import Vendor
 from django.template.defaultfilters import slugify
-#from orders.models import Order
+
 import datetime
 
 
@@ -158,12 +161,21 @@ def myAccount(request):
     redirectUrl = detectUser(user)
     return redirect(redirectUrl)
 
+@login_required
 
-@login_required(login_url='login')
-@user_passes_test(check_role_customer)
 def custDashboard(request):
-    
-    return render(request, 'accounts/custDashboard.html',)
+    orders = Order.objects.filter(user=request.user).order_by('-created_at')
+
+    paginator = Paginator(orders, 5)  # Show 5 orders per page
+    page = request.GET.get('page')
+    paged_orders = paginator.get_page(page)
+
+    context = {
+        'orders_count': orders.count(),
+        'recent_orders': paged_orders,
+    }
+    return render(request, 'accounts/custDashboard.html', context)
+
 
 
 @login_required(login_url='login')

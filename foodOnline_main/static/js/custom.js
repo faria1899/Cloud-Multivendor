@@ -1,4 +1,4 @@
-/*let autocomplete;
+let autocomplete;
 
 function initAutoComplete(){
 autocomplete = new google.maps.places.Autocomplete(
@@ -6,7 +6,7 @@ autocomplete = new google.maps.places.Autocomplete(
     {
         types: ['geocode', 'establishment'],
         //default in this app is "IN" - add your country code
-        componentRestrictions: {'country': ['in']},
+        componentRestrictions: {'country': ['ban']},
     })
 // function to specify what should happen when the prediction is clicked
 autocomplete.addListener('place_changed', onPlaceChanged);
@@ -69,7 +69,7 @@ function onPlaceChanged (){
         }
     }
 
-}*/
+}
 
 
 
