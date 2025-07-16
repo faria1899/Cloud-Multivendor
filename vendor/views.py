@@ -7,6 +7,7 @@ from django.db import IntegrityError
 
 from menu.forms import CategoryForm,FoodItemForm
 #from orders.models import Order, OrderedFood
+from orders.models import Order, OrderedFood
 import vendor
 from .forms import VendorForm,OpeningHourForm
 from accounts.forms import UserProfileForm
@@ -237,3 +238,40 @@ def remove_opening_hours(request, pk=None):
             hour = get_object_or_404(OpeningHour, pk=pk)
             hour.delete()
             return JsonResponse({'status': 'success', 'id': pk})
+        
+def order_detail(request, order_number):
+    try:
+        vendor = get_vendor(request)
+        order = Order.objects.get(order_number=order_number, is_ordered=True)
+        ordered_food = OrderedFood.objects.filter(order=order, fooditem__vendor=vendor)
+
+        context = {
+            'order': order,
+            'ordered_food': ordered_food,
+            'subtotal': order.get_total_by_vendor(vendor)['subtotal'],
+            'tax_data': order.get_total_by_vendor(vendor)['tax_dict'],
+            'grand_total': order.get_total_by_vendor(vendor)['grand_total'],
+        }
+        return render(request, 'vendor/order_detail.html', context)
+
+    except Exception as e:
+        print("Error in order_detail view:", e)
+        return redirect('vendor')
+
+
+def my_orders(request):
+    vendor = Vendor.objects.get(user=request.user)
+    orders = Order.objects.filter(vendors__in=[vendor.id], is_ordered=True).order_by('-created_at')
+
+    orders_with_totals = []
+    for order in orders:
+        total_data = order.get_total_by_vendor(vendor)
+        orders_with_totals.append({
+            'order': order,
+            'grand_total': total_data.get('grand_total', 0),
+        })
+
+    context = {
+        'orders_with_totals': orders_with_totals,
+    }
+    return render(request, 'vendor/my_orders.html', context)

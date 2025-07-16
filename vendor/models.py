@@ -19,6 +19,7 @@ class Vendor(models.Model):
 
         def __str__(self):
             return self.vendor_name
+
         
         def is_open(self):
         # Check current day's opening hours.

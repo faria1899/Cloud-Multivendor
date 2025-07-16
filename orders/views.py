@@ -141,7 +141,6 @@ def place_order(request):
 
     return redirect('checkout')
 
-
 @csrf_exempt
 def sslcommerz_success(request):
     if request.method == 'POST':
@@ -154,6 +153,7 @@ def sslcommerz_success(request):
         try:
             order = Order.objects.get(order_number=order_number, is_ordered=False)
 
+            # Create Payment
             payment = Payment.objects.create(
                 user=order.user,
                 transaction_id=transaction_id,
@@ -162,10 +162,12 @@ def sslcommerz_success(request):
                 status=status
             )
 
+            # Update order
             order.payment = payment
             order.is_ordered = True
             order.save()
 
+            # Move cart items to OrderedFood
             cart_items = Cart.objects.filter(user=order.user)
             for item in cart_items:
                 OrderedFood.objects.create(
@@ -178,9 +180,62 @@ def sslcommerz_success(request):
                     amount=item.fooditem.price * item.quantity,
                 )
 
+            # Send confirmation email to customer
+            try:
+                mail_subject = 'Thank you for ordering with us.'
+                mail_template = 'orders/order_confirmation_email.html'
+
+                ordered_food = OrderedFood.objects.filter(order=order)
+                customer_subtotal = sum(item.price * item.quantity for item in ordered_food)
+                tax_data = json.loads(order.tax_data)
+
+                context = {
+                    'user': order.user,
+                    'order': order,
+                    'to_email': order.email,
+                    'ordered_food': ordered_food,
+                    'domain': get_current_site(request),
+                    'customer_subtotal': customer_subtotal,
+                    'tax_data': tax_data,
+                }
+
+                send_notification(mail_subject, mail_template, context)
+            except Exception as e:
+                print("❌ Customer email failed:", e)
+
+            # Send email to vendors
+            try:
+                mail_subject = 'You have received a new order.'
+                mail_template = 'orders/new_order_received.html'
+                to_emails = []
+
+                for item in cart_items:
+                    vendor_email = item.fooditem.vendor.user.email
+                    if vendor_email not in to_emails:
+                        to_emails.append(vendor_email)
+
+                        ordered_food_to_vendor = OrderedFood.objects.filter(
+                            order=order, fooditem__vendor=item.fooditem.vendor)
+
+                        vendor_totals = order_total_by_vendor(order, item.fooditem.vendor.id)
+
+                        context = {
+                            'order': order,
+                            'to_email': vendor_email,
+                            'ordered_food_to_vendor': ordered_food_to_vendor,
+                            'vendor_subtotal': vendor_totals['subtotal'],
+                            'tax_data': vendor_totals['tax_dict'],
+                            'vendor_grand_total': vendor_totals['grand_total'],
+                        }
+
+                        send_notification(mail_subject, mail_template, context)
+            except Exception as e:
+                print("❌ Vendor email failed:", e)
+
+            # Clear cart
             cart_items.delete()
 
-            # ✅ Redirect user to order_complete with parameters
+            # Redirect to order_complete page
             return redirect(
                 reverse('order_complete') + f'?order_no={order_number}&trans_id={transaction_id}'
             )
@@ -189,6 +244,7 @@ def sslcommerz_success(request):
             return HttpResponse("❌ Order does not exist.", status=404)
 
     return HttpResponse("❌ Invalid request.", status=400)
+
 
 @csrf_exempt
 def sslcommerz_fail(request):

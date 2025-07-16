@@ -178,14 +178,45 @@ def custDashboard(request):
 
 
 
+
 @login_required(login_url='login')
 @user_passes_test(check_role_vendor)
 def vendorDashboard(request):
     vendor = Vendor.objects.get(user=request.user)
-   
-    return render(request, 'accounts/vendorDashboard.html')
 
+    # Get all orders for this vendor, most recent first
+    orders = Order.objects.filter(vendors__in=[vendor.id], is_ordered=True).order_by('-created_at')
+    recent_orders = orders[:10]
 
+    # Calculate current month revenue
+    current_month = datetime.datetime.now().month
+    current_month_orders = orders.filter(created_at__month=current_month)
+    current_month_revenue = 0
+    for order in current_month_orders:
+        current_month_revenue += order.get_total_by_vendor(vendor).get('grand_total', 0)
+
+    # Calculate total revenue
+    total_revenue = 0
+    for order in orders:
+        total_revenue += order.get_total_by_vendor(vendor).get('grand_total', 0)
+
+    # Build recent orders with total for template
+    recent_orders_data = []
+    for order in recent_orders:
+        total_data = order.get_total_by_vendor(vendor)
+        recent_orders_data.append({
+            'order': order,
+            'grand_total': total_data.get('grand_total', 0),
+        })
+
+    context = {
+        'orders': orders,
+        'orders_count': orders.count(),
+        'recent_orders_data': recent_orders_data,
+        'total_revenue': total_revenue,
+        'current_month_revenue': current_month_revenue,
+    }
+    return render(request, 'accounts/vendorDashboard.html', context)
 def forgot_password(request):
     if request.method == 'POST':
         email = request.POST['email']
